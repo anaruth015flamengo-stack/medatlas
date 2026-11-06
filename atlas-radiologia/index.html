@@ -1,34 +1,86 @@
 <!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071522"><title>MedAtlas • Identificação anatômica</title>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071522"><title>MedAtlas • Atlas com identificação automática</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#071522;color:#e8f6fb;--border:#294a60;--cyan:#55dace;--muted:#a3bdcb}*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}a{color:var(--cyan)}header{position:sticky;top:0;z-index:5;background:#092033ed;border-bottom:1px solid var(--border);padding:15px 4vw;display:flex;align-items:center;justify-content:space-between;gap:12px}header strong{font-size:23px}header b{color:var(--cyan)}header a{font-size:13px;text-decoration:none}main{max-width:1320px;margin:auto;padding:24px 15px 65px}.tag{color:var(--cyan);letter-spacing:.14em;font-weight:800;font-size:12px;text-transform:uppercase}h1{font-size:clamp(27px,4vw,42px);margin:10px 0}p{line-height:1.55;color:var(--muted)}.layout{display:grid;grid-template-columns:minmax(0,1fr) 345px;gap:16px}.card{border:1px solid var(--border);border-radius:19px;background:linear-gradient(140deg,#102a3e,#0a2032);overflow:hidden}.pad{padding:16px}.line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.line>*{flex-shrink:0}.bar{padding:13px 16px;border-bottom:1px solid var(--border)}button,.filebtn{border:1px solid #3b6576;border-radius:10px;background:#17364b;color:#deeff5;padding:10px 13px;cursor:pointer;display:inline-block;font-weight:600;font-size:13px}button.active,button.primary{background:#168f8b;color:white;border-color:#5bdcd0}button:disabled{opacity:.5;cursor:not-allowed}select,input[type=text]{background:#071a29;border:1px solid #3c6879;border-radius:10px;color:#edfaff;padding:10px;max-width:100%;min-width:0}.screen{height:min(59vw,590px);min-height:420px;position:relative;background:black}.screen canvas{width:100%;height:100%;display:block;touch-action:none}#loading{position:absolute;inset:0;background:#061725e8;display:flex;align-items:center;justify-content:center;text-align:center;padding:25px;z-index:2;font-weight:700}#loading.hidden{display:none}#status{font-size:13px;color:#b8d4e0}.foot{padding:13px 16px;display:grid;gap:12px}.side{display:grid;gap:16px;align-content:start}.hint{font-size:12px;color:#b0c9d7;line-height:1.55}.state{background:#081c2a;border:1px solid var(--border);border-radius:12px;padding:14px}.state h2{font-size:22px;margin:3px 0}.state .type{font-size:12px;color:var(--cyan)}.state p{margin:6px 0}.side h3{font-size:17px;margin:0 0 10px}.controls{display:grid;gap:10px}.controls label{font-size:12px;color:#b6cddd}.controls input[type=file]{width:100%;font-size:12px}.muted{color:var(--muted)}.note{background:#182d40;border-left:3px solid #e9bc67;padding:12px;color:#e5d8bc;font-size:12px;line-height:1.5}.green{color:#80e2d5}.small{font-size:12px}.link{color:#82e5da}#legend{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}#legend button{padding:8px;font-size:12px;text-align:left}.hidden{display:none!important}@media(max-width:900px){.layout{grid-template-columns:1fr}.screen{height:55vw;min-height:410px}.side{grid-template-columns:1fr 1fr}}@media(max-width:590px){.side{grid-template-columns:1fr}.screen{height:440px}.line button{flex:1}main{padding:15px 10px}.bar{padding:10px}}
 </style></head><body>
 <header><strong>✚ Med<b>Atlas</b> <span style="font-size:12px;font-weight:500;color:#a3c0ce">/ Radiologia</span></strong><a href="../">← Página inicial</a></header><main>
-<div class="tag">Atlas de radiologia · identificação por segmentação</div><h1>Toque em um órgão para identificá-lo.</h1><p>Carregue uma <strong>TC e a segmentação correspondente</strong>, toque no exame e veja o nome da estrutura. Sem máscara anatômica, o atlas mostra apenas a imagem, sem atribuir nomes incorretos.</p>
+<div class="tag">Atlas de radiologia · identificação por segmentação</div><h1>Toque na estrutura para identificá-la.</h1><p>Carregamento automático de uma <strong>TC real com máscara de aorta do mesmo exame</strong>, quando o servidor de origem permitir. Toque na região colorida para consultar a anatomia. Para estudar 15 órgãos, carregue um par AMOS22 abaixo.</p>
 <div class="layout"><section class="card">
 <div class="bar"><div class="line"><button data-plane="axial" class="active">Axial</button><button data-plane="coronal">Coronal</button><button data-plane="sagittal">Sagital</button><button data-plane="multi">3 planos</button></div></div>
-<div class="screen"><canvas id="gl"></canvas><div id="loading">Carregando TC demonstrativa…</div></div>
+<div class="screen"><canvas id="gl"></canvas><div id="loading">Preparando TC real e máscara anatômica…</div></div>
 <div class="foot"><div class="line"><button id="mode" class="primary">Modo: explorar</button><button id="toggleMask">Ocultar cores</button><button id="reset">Redefinir</button></div>
 <div class="line"><label for="window">Janela</label><select id="window"><option value="soft">Partes moles (C 40 / W 400)</option><option value="liver">Fígado (C 60 / W 160)</option><option value="lung">Pulmonar (C −600 / W 1500)</option><option value="bone">Óssea (C 400 / W 1800)</option></select><span id="status">Inicializando…</span></div>
-<p class="hint">Clique/t toque no órgão para mover a mira e consultar a segmentação. Use a rolagem ou o gesto de deslizar para mudar os cortes, conforme o dispositivo.</p></div></section>
+<p class="hint">Toque no órgão para mover a mira e consultar a segmentação. Use a rolagem ou o gesto de deslizar para mudar os cortes, conforme o dispositivo.</p></div></section>
 <aside class="side">
 <div class="card pad"><h3>Identificação anatômica</h3><div id="result" class="state" aria-live="polite"><div class="type">AGUARDANDO IDENTIFICAÇÃO</div><h2>Selecione uma estrutura</h2><p>Uma máscara anatômica do mesmo exame é necessária para reconhecimento por toque.</p></div>
 <div id="quizResult" class="small muted" style="margin-top:10px"></div><div class="line" style="margin-top:12px"><button id="quiz" disabled>Iniciar quiz</button><button id="reveal" disabled>Revelar</button></div><div id="legend"></div></div>
-<div class="card pad"><h3>Carregar TC + segmentação</h3><div class="controls"><label>1. Tomografia NIfTI (.nii ou .nii.gz)<input id="ctfile" type="file" accept=".nii,.gz,.nrrd"></label><label>2. Segmentação do <strong>mesmo exame</strong> (.nii ou .nii.gz)<input id="segfile" type="file" accept=".nii,.gz,.nrrd"></label><label for="scheme">Conjunto de rótulos</label><select id="scheme"><option value="amos">AMOS22 (15 classes)</option><option value="totalseg">TotalSegmentator (rótulos numerados conforme JSON)</option></select><label>Se usar outro conjunto, forneça um JSON de ID → nome:<input id="jsonfile" type="file" accept=".json"></label><button id="loadpair" class="primary">Carregar par e ativar identificação</button></div><div id="importStatus" class="small muted" style="margin-top:8px">O exame de demonstração não possui máscara correspondente incluída.</div></div>
+<div class="card pad"><h3>Exame automático</h3><p class="hint">Exame s0011 + máscaras do mesmo paciente, preparados e servidos pelo próprio GitHub Pages. Primeiro carregamento exige internet; várias estruturas poderão ser identificadas ao toque quando os dados forem gerados.</p><button id="auto" class="primary">Carregar exame anatômico integrado</button><p class="hint" id="autoStatus">Verificando se o pacote de TC e máscaras já foi criado no repositório.</p><p class="hint"><a href="https://isaac-for-healthcare.github.io/digital-twin-pipelines/patient-digital-twin/examples/data/" target="_blank" rel="noopener">Fonte dos dados e atribuição</a></p></div><div class="card pad"><h3>Carregar outro exame: TC + segmentação</h3><div class="controls"><label>1. Tomografia NIfTI (.nii ou .nii.gz)<input id="ctfile" type="file" accept=".nii,.gz,.nrrd"></label><label>2. Segmentação do <strong>mesmo exame</strong> (.nii ou .nii.gz)<input id="segfile" type="file" accept=".nii,.gz,.nrrd"></label><label for="scheme">Conjunto de rótulos</label><select id="scheme"><option value="amos">AMOS22 (15 classes)</option><option value="totalseg">TotalSegmentator (rótulos numerados conforme JSON)</option></select><label>Se usar outro conjunto, forneça um JSON de ID → nome:<input id="jsonfile" type="file" accept=".json"></label><button id="loadpair" class="primary">Carregar par e ativar identificação</button></div><div id="importStatus" class="small muted" style="margin-top:8px">Para uma TC com 15 órgãos, escolha uma imagem e máscara correspondentes do conjunto AMOS22.</div></div>
 <div class="card pad"><h3>Sobre a identificação</h3><div class="note">Esta versão <strong>não executa IA de segmentação</strong> no iPhone. Ela identifica os órgãos a partir de uma segmentação pronta e alinhada à TC. Marcadores ou máscaras de outro paciente não devem ser usados.</div><p class="small">A base <a class="link" href="https://zenodo.org/records/7262581" target="_blank" rel="noopener">AMOS22</a> disponibiliza volumes e máscaras correspondentes de 15 órgãos, conforme sua licença. <a class="link" href="https://niivue.com/" target="_blank" rel="noopener">NiiVue</a> fornece o visualizador.</p></div>
 </aside></div>
-<p class="small muted">Uso educacional. Segmentações podem conter erros; não utilizar para diagnóstico. A TC demonstrativa é CT_Abdo (Steve Pieper / 3D Slicer, disponibilizada nas imagens de exemplo NiiVue). O navegador processa os arquivos locais sem enviá-los ao MedAtlas.</p></main>
+<p class="small muted">Uso educacional. Segmentações podem conter erros; não utilizar para diagnóstico. Exemplo integrado s0011: TC e anotações do TotalSegmentator small dataset, disponibilizados por NVIDIA Isaac for Healthcare (CC BY 4.0). Nenhuma estrutura sem máscara receberá identificação. O navegador processa os arquivos locais sem enviá-los ao MedAtlas.</p></main>
 <script type="module">
 import { Niivue } from 'https://unpkg.com/@niivue/niivue@0.57.0/dist/index.js';
 const $=id=>document.getElementById(id);
 const AMOS={1:['Baço','Órgão linfático no hipocôndrio esquerdo.'],2:['Rim direito','Órgão retroperitoneal à direita.'],3:['Rim esquerdo','Órgão retroperitoneal à esquerda.'],4:['Vesícula biliar','Reservatório biliar na face inferior do fígado.'],5:['Esôfago','Estrutura tubular que conduz alimento ao estômago.'],6:['Fígado','Maior glândula do corpo, no quadrante superior direito.'],7:['Estômago','Órgão muscular localizado predominantemente no abdome superior esquerdo.'],8:['Aorta','Principal artéria sistêmica, anterior à coluna.'],9:['Veia cava inferior','Principal veia de retorno do abdome e membros inferiores.'],10:['Pâncreas','Glândula retroperitoneal, posterior ao estômago.'],11:['Suprarrenal direita','Glândula endócrina sobre o polo superior do rim direito.'],12:['Suprarrenal esquerda','Glândula endócrina sobre o polo superior do rim esquerdo.'],13:['Duodeno','Porção inicial do intestino delgado.'],14:['Bexiga urinária','Órgão oco de armazenamento da urina.'],15:['Próstata / útero','Categoria combinada na referência AMOS22; consulte anatomia individual.']};
 let nv, hasMask=false, maskVisible=true, mode='explorar', map=AMOS, quizId=0, lastId=0, urls=[];
+const DATA_DIR='./dados/';
+const INFO_URL=DATA_DIR+'manifesto.json';
+const LOCAL_CT=DATA_DIR+'tc.nii.gz';
+const LOCAL_SEG=DATA_DIR+'rotulos.nii.gz';
 const setText=(id,s)=>$(id).textContent=s;
 const showResult=(name,desc,type='ESTRUTURA IDENTIFICADA')=>{$('result').innerHTML='';const d=document.createElement('div');d.className='type';d.textContent=type;const h=document.createElement('h2');h.textContent=name;const p=document.createElement('p');p.textContent=desc;$('result').append(d,h,p)};
 function setWindows(){if(!nv?.volumes?.length)return;const ranges={soft:[-160,240],liver:[-20,140],lung:[-1350,150],bone:[-500,1300]};const [min,max]=ranges[$('window').value];nv.volumes[0].cal_min=min;nv.volumes[0].cal_max=max;nv.updateGLVolume()}
 function updateLegend(){const legend=$('legend');legend.innerHTML='';if(!hasMask)return;for(const [id,entry] of Object.entries(map)){const b=document.createElement('button');b.textContent=entry[0];b.onclick=()=>{showResult(entry[0],entry[1]||'Estrutura anatômica segmentada.','ESTRUTURA DA LEGENDA');};legend.append(b)}}
 function locationChange(data){if(!hasMask||!data?.values)return;let val=data.values[1];let v=typeof val==='number'?val:(val?.value ?? val?.raw ?? val?.intensity);if(v===undefined||v===null)return;v=Math.round(Number(v));if(!Number.isFinite(v)||v===0)return;lastId=v;const entry=map[v];if(mode==='quiz'){const msg=quizId===v?'✓ Correto! '+(map[v]?.[0]||'Estrutura'):'Ainda não. Você tocou em outra região segmentada.';setText('quizResult',msg);return;}showResult(entry?.[0]||'Região '+v,entry?.[1]||'Região presente na segmentação. Consulte a legenda fornecida com a máscara.');}
-async function initialize(){try{nv=new Niivue({show3Dcrosshair:false,isColorbar:false,backColor:[0,0,0,1],crosshairColor:[.26,.87,.81,.75]});await nv.attachToCanvas($('gl'));nv.onLocationChange=locationChange;await nv.loadVolumes([{url:'https://niivue.github.io/niivue-demo-images/CT_Abdo.nii.gz',colormap:'gray'}]);setWindows();$('loading').classList.add('hidden');setText('status','TC demonstrativa carregada · sem máscaras');showResult('Exame sem máscara','Para reconhecer automaticamente por toque, carregue uma TC junto de sua própria segmentação.','TC DEMONSTRATIVA')}catch(e){console.error(e);setText('loading','Falha ao carregar a TC. Verifique a internet e recarregue a página.')}}
+function sameGeometry(a,b){
+ const d1=a?.dims?.slice(1,4),d2=b?.dims?.slice(1,4);
+ if(!d1||!d2||d1.some((x,i)=>x!==d2[i]))return false;
+ const af1=a.affine?.flat?.(),af2=b.affine?.flat?.();
+ if(af1&&af2&&af1.length===af2.length&&af1.some((x,i)=>Math.abs(x-af2[i])>.06))return false;
+ return true;
+}
+async function loadAutomatic(){
+ if(!nv)return;
+ $('auto').disabled=true;$('loading').classList.remove('hidden');
+ setText('loading','Verificando arquivos do MedAtlas…');
+ setText('autoStatus','Procurando a TC e a segmentação no próprio GitHub Pages.');
+ hasMask=false;
+ try{
+   const response=await fetch(INFO_URL+'?v=4',{cache:'no-store'});
+   if(!response.ok) throw new Error('Os arquivos ainda não foram gerados (manifesto ausente: HTTP '+response.status+'). Execute o workflow Preparar TC e segmentacoes no GitHub Actions.');
+   const info=await response.json();
+   if(!info.labels||!Object.keys(info.labels).length) throw new Error('O manifesto não contém órgãos segmentados.');
+   setText('loading','Carregando TC e máscaras do MedAtlas…');
+   await nv.loadVolumes([{url:LOCAL_CT,name:'MedAtlas TC s0011',colormap:'gray'},
+       {url:LOCAL_SEG,name:'MedAtlas órgãos segmentados',colormap:'warm',opacity:.38,cal_min:0,cal_max:Object.keys(info.labels).length}]);
+   const a=nv.volumes[0],b=nv.volumes[1];
+   if(!sameGeometry(a,b))throw new Error('Tomografia e segmentação não estão alinhadas.');
+   if(!b.img?.length||!b.img.some?.(x=>x>0))throw new Error('A segmentação não contém órgãos etiquetados.');
+   map=Object.fromEntries(Object.entries(info.labels).map(([k,name])=>[Number(k),[name,'Estrutura anatômica localizada na segmentação correspondente a esta tomografia.']]));
+   hasMask=true;maskVisible=true;mode='explorar';quizId=0;
+   setText('mode','Modo: explorar');setText('toggleMask','Ocultar cores');
+   $('quiz').disabled=false;$('reveal').disabled=false;
+   nv.setSliceType(nv.sliceTypeAxial);setWindows();updateLegend();
+   $('loading').classList.add('hidden');
+   setText('status','TC s0011 + '+Object.keys(map).length+' estruturas segmentadas');
+   setText('autoStatus','✓ TC e máscaras carregadas e alinhadas. Toque nas regiões destacadas. Regiões sem máscara não são identificadas.');
+   showResult('Atlas anatômico pronto','Toque em uma região segmentada para ver seu nome. As classes disponíveis estão na legenda.','EXAME SEGMENTADO');
+ }catch(e){
+   console.error('Falha ao carregar exame integrado',e);
+   $('loading').classList.add('hidden');
+   setText('status','Dados anatômicos indisponíveis');
+   setText('autoStatus','Erro: '+(e.message||String(e)));
+   showResult('Exame integrado ainda indisponível','Verifique se o workflow do GitHub Actions gerou os arquivos em atlas-radiologia/dados. Nenhuma marcação será inventada.','SEM DADOS');
+ }finally{$('auto').disabled=false;}
+}
+async function initialize(){
+ try{
+  nv=new Niivue({show3Dcrosshair:false,isColorbar:false,backColor:[0,0,0,1],crosshairColor:[.26,.87,.81,.75]});
+  await nv.attachToCanvas($('gl'));nv.onLocationChange=locationChange;
+  await loadAutomatic();
+ }catch(e){console.error(e);setText('loading','Falha ao iniciar o visualizador. Verifique a internet e recarregue a página.');}
+}
+$('auto').onclick=loadAutomatic;
 const planes={axial:'sliceTypeAxial',coronal:'sliceTypeCoronal',sagittal:'sliceTypeSagittal',multi:'sliceTypeMultiplanar'};document.querySelectorAll('[data-plane]').forEach(b=>b.onclick=()=>{if(!nv)return;nv.setSliceType(nv[planes[b.dataset.plane]]);document.querySelectorAll('[data-plane]').forEach(x=>x.classList.toggle('active',x===b))});
 $('window').onchange=setWindows;
 $('reset').onclick=()=>{if(nv){nv.scene.volScaleMultiplier=1;nv.setSliceType(nv.sliceTypeAxial);nv.drawScene()}};
