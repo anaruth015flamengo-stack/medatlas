@@ -66,13 +66,61 @@ const setText=(id,s)=>$(id).textContent=s;
 const showResult=(name,desc,type='ESTRUTURA IDENTIFICADA')=>{$('result').innerHTML='';const d=document.createElement('div');d.className='type';d.textContent=type;const h=document.createElement('h2');h.textContent=name;const p=document.createElement('p');p.textContent=desc;$('result').append(d,h,p)};
 function setWindows(){if(!nv?.volumes?.length)return;const ranges={soft:[-160,240],liver:[-20,140],lung:[-1350,150],bone:[-500,1300]};const [min,max]=ranges[$('window').value];nv.volumes[0].cal_min=min;nv.volumes[0].cal_max=max;nv.updateGLVolume()}
 function updateLegend(){const legend=$('legend');legend.innerHTML='';if(!hasMask)return;for(const [id,entry] of Object.entries(map)){const b=document.createElement('button');b.textContent=entry[0];b.onclick=()=>{showResult(entry[0],entry[1]||'Estrutura anatômica segmentada.','ESTRUTURA DA LEGENDA');};legend.append(b)}}
-function locationChange(data){if(!hasMask||!data?.values)return;let val=data.values[1];let v=typeof val==='number'?val:(val?.value ?? val?.raw ?? val?.intensity);if(v===undefined||v===null)return;v=Math.round(Number(v));if(!Number.isFinite(v)||v===0)return;lastId=v;const entry=map[v];if(mode==='quiz'){const msg=quizId===v?'✓ Correto! '+(map[v]?.[0]||'Estrutura'):'Ainda não. Você tocou em outra região segmentada.';setText('quizResult',msg);return;}showResult(entry?.[0]||'Região '+v,entry?.[1]||'Região presente na segmentação. Consulte a legenda fornecida com a máscara.');}
-function sameGeometry(a,b){
- const d1=a?.dims?.slice(1,4),d2=b?.dims?.slice(1,4);
- if(!d1||!d2||d1.some((x,i)=>x!==d2[i]))return false;
- const af1=a.affine?.flat?.(),af2=b.affine?.flat?.();
- if(af1&&af2&&af1.length===af2.length&&af1.some((x,i)=>Math.abs(x-af2[i])>.06))return false;
- return true;
+// NiiVue devolve amostras por volume; para o par integrado a grade nativa
+// é idêntica. Leia o inteiro da máscara, nunca a intensidade da TC.
+function locationChange(data) {
+  if (!hasMask || !nv?.volumes?.[1] || !data) return;
+  const mask = nv.volumes[1];
+  const sample = data.values?.[1];
+  const candidates = [
+    typeof sample === 'number' ? sample : sample?.value,
+    sample?.raw, sample?.intensity,
+    Array.isArray(sample) ? sample[0] : undefined
+  ];
+  // Confirmação adicional por leitura direta do voxel da máscara.
+  if (Array.isArray(data.vox) && data.vox.length >= 3 && typeof mask.getValue === 'function') {
+    try {
+      const xyz = data.vox.slice(0,3).map(n => Math.round(Number(n)));
+      if(xyz.every(Number.isFinite)) candidates.push(mask.getValue(xyz[0],xyz[1],xyz[2],0));
+    } catch(error) { console.debug('Amostra nativa indisponível', error); }
+  }
+  const v = candidates.map(Number).map(Math.round).find(n => Number.isFinite(n) && n > 0 && !!map[n]);
+  if (!v) {
+    if(mode !== 'quiz') showResult('Região sem rótulo', 'Toque em uma área colorida. Somente regiões presentes na máscara podem ser identificadas.', 'SEM IDENTIFICAÇÃO NESTE PONTO');
+    return;
+  }
+  lastId = v;
+  const entry = map[v];
+  if (mode === 'quiz') {
+    setText('quizResult',quizId === v ? '✓ Correto! '+entry[0] : 'Ainda não. Você tocou em '+entry[0]+'.');
+    return;
+  }
+  showResult(entry[0],entry[1] || 'Estrutura anatômica segmentada.');
+}
+function flattenMatrix(matrix) {
+  if (!matrix) return null;
+  const values = Array.from(matrix).flatMap(r => typeof r === 'number' ? [r] : Array.from(r || []));
+  return values.length === 16 && values.every(Number.isFinite) ? values : null;
+}
+function closeMatrix(m1,m2,tol=0.06) {
+  return !!(m1 && m2 && m1.length === m2.length && m1.every((x,i) => Math.abs(x-m2[i])<=tol));
+}
+function sameGeometry(a,b) {
+  const d1 = Array.from(a?.dims || []).slice(1,4);
+  const d2 = Array.from(b?.dims || []).slice(1,4);
+  if (d1.length !== 3 || d2.length !== 3 || d1.some((n,i) => n !== d2[i])) {
+    return {ok:false, detail:'dimensões diferentes: TC '+d1.join('×')+' / máscara '+d2.join('×')};
+  }
+  // NiiVue pode representar a transformação da imagem em sistemas internos
+  // diferentes. Primeiro compare a affine nativa, gravada no NIfTI.
+  const nativeA = flattenMatrix(a.hdr?.affine);
+  const nativeB = flattenMatrix(b.hdr?.affine);
+  const displayA = flattenMatrix(a.affine);
+  const displayB = flattenMatrix(b.affine);
+  if (closeMatrix(nativeA,nativeB)) return {ok:true, detail:'affines nativas equivalentes'};
+  // Se NiiVue não expõe a nativa, a affine do visualizador precisa coincidir.
+  if (closeMatrix(displayA,displayB)) return {ok:true, detail:'affines equivalentes'};
+  return {ok:false, detail:'transformações espaciais distintas ou indisponíveis. TC='+JSON.stringify(nativeA||displayA)+'; máscara='+JSON.stringify(nativeB||displayB)};
 }
 async function loadAutomatic(){
  if(!nv)return;
@@ -89,7 +137,9 @@ async function loadAutomatic(){
    await nv.loadVolumes([{url:LOCAL_CT,name:'tc.nii.gz',colormap:'gray'},
        {url:LOCAL_SEG,name:'rotulos.nii.gz',colormap:'warm',opacity:.38,cal_min:0,cal_max:Object.keys(info.labels).length}]);
    const a=nv.volumes[0],b=nv.volumes[1];
-   if(!sameGeometry(a,b))throw new Error('Tomografia e segmentação não estão alinhadas.');
+   const geometry=sameGeometry(a,b);
+   if(!geometry.ok) throw new Error('Tomografia e segmentação não estão alinhadas: '+geometry.detail);
+   console.info('Verificação geométrica do MedAtlas:',geometry.detail);
    if(!b.img?.length||!b.img.some?.(x=>x>0))throw new Error('A segmentação não contém órgãos etiquetados.');
    map=Object.fromEntries(Object.entries(info.labels).map(([k,name])=>[Number(k),[name,'Estrutura anatômica localizada na segmentação correspondente a esta tomografia.']]));
    hasMask=true;maskVisible=true;mode='explorar';quizId=0;
@@ -98,7 +148,7 @@ async function loadAutomatic(){
    nv.setSliceType(nv.sliceTypeAxial);setWindows();updateLegend();
    $('loading').classList.add('hidden');
    setText('status','TC s0011 + '+Object.keys(map).length+' estruturas segmentadas');
-   setText('autoStatus','✓ TC e máscaras carregadas e alinhadas. Toque nas regiões destacadas. Regiões sem máscara não são identificadas.');
+   setText('autoStatus','✓ TC e máscaras verificadas ('+geometry.detail+'). Toque nas regiões coloridas ou escolha um órgão na lista abaixo.');
    showResult('Atlas anatômico pronto','Toque em uma região segmentada para ver seu nome. As classes disponíveis estão na legenda.','EXAME SEGMENTADO');
  }catch(e){
    console.error('Falha ao carregar exame integrado',e);
