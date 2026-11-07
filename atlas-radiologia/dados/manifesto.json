@@ -1,0 +1,28 @@
+{
+  "dataset": "TotalSegmentator small s0011",
+  "source": "NVIDIA Isaac for Healthcare / TotalSegmentator",
+  "license": "CC BY 4.0",
+  "size": [
+    156,
+    156,
+    216
+  ],
+  "labels": {
+    "1": "Aorta abdominal",
+    "2": "Fígado",
+    "3": "Baço",
+    "4": "Rim direito",
+    "5": "Rim esquerdo",
+    "6": "Pâncreas",
+    "7": "Estômago",
+    "8": "Vesícula biliar",
+    "9": "Veia cava inferior",
+    "10": "Cólon",
+    "11": "Intestino delgado"
+  },
+  "files": {
+    "ct": "dados/tc.nii.gz",
+    "seg": "dados/rotulos.nii.gz"
+  },
+  "disclaimer": "Rótulos do conjunto de dados, não validação clínica. Os ramos do cólon não estão separados."
+}
