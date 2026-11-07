@@ -1,0 +1,102 @@
+{
+  "ct": "atlas-torax/tc-real/dados/torax.nii.gz",
+  "mask": "atlas-torax/tc-real/dados/mascara_torax.nii.gz",
+  "labels": "atlas-torax/tc-real/dados/rotulos_torax.json",
+  "available_labels": {
+    "1": "Lobo superior direito",
+    "2": "Lobo médio direito",
+    "3": "Lobo inferior direito",
+    "4": "Lobo superior esquerdo",
+    "5": "Lobo inferior esquerdo",
+    "6": "Traqueia",
+    "7": "Esôfago",
+    "8": "Coração",
+    "9": "Aorta torácica",
+    "10": "Veias pulmonares",
+    "11": "Veia cava superior"
+  },
+  "added": [
+    {
+      "id": 1,
+      "label": "Lobo superior direito",
+      "source": "tmp/seg-total/lung_upper_lobe_right.nii.gz"
+    },
+    {
+      "id": 2,
+      "label": "Lobo médio direito",
+      "source": "tmp/seg-total/lung_middle_lobe_right.nii.gz"
+    },
+    {
+      "id": 3,
+      "label": "Lobo inferior direito",
+      "source": "tmp/seg-total/lung_lower_lobe_right.nii.gz"
+    },
+    {
+      "id": 4,
+      "label": "Lobo superior esquerdo",
+      "source": "tmp/seg-total/lung_upper_lobe_left.nii.gz"
+    },
+    {
+      "id": 5,
+      "label": "Lobo inferior esquerdo",
+      "source": "tmp/seg-total/lung_lower_lobe_left.nii.gz"
+    },
+    {
+      "id": 6,
+      "label": "Traqueia",
+      "source": "tmp/seg-total/trachea.nii.gz"
+    },
+    {
+      "id": 7,
+      "label": "Esôfago",
+      "source": "tmp/seg-total/esophagus.nii.gz"
+    },
+    {
+      "id": 8,
+      "label": "Coração",
+      "source": "tmp/seg-total/heart.nii.gz"
+    },
+    {
+      "id": 9,
+      "label": "Aorta torácica",
+      "source": "tmp/seg-total/aorta.nii.gz"
+    },
+    {
+      "id": 10,
+      "label": "Veias pulmonares",
+      "source": "tmp/seg-total/pulmonary_vein.nii.gz"
+    },
+    {
+      "id": 11,
+      "label": "Veia cava superior",
+      "source": "tmp/seg-total/superior_vena_cava.nii.gz"
+    }
+  ],
+  "missing_or_skipped": [
+    {
+      "label": "Árvore traqueobrônquica",
+      "source_name": "lung_airways",
+      "reason": "arquivo ausente"
+    },
+    {
+      "label": "Artérias pulmonares",
+      "source_name": "lung_arteries",
+      "reason": "arquivo ausente"
+    },
+    {
+      "label": "Veias pulmonares intrapulmonares",
+      "source_name": "lung_veins",
+      "reason": "arquivo ausente"
+    }
+  ],
+  "planned_future_labels": [
+    "Língula",
+    "Átrio direito",
+    "Átrio esquerdo",
+    "Ventrículo direito",
+    "Ventrículo esquerdo",
+    "Brônquio principal direito",
+    "Brônquio principal esquerdo"
+  ],
+  "note": "As estruturas planejadas dependem de máscaras adicionais, algumas sob licença específica."
+}
