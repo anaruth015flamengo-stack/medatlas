@@ -1,0 +1,42 @@
+name: Gerar segmentação torácica do MedAtlas
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  segmentar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install SimpleITK TotalSegmentator
+      - name: Verificar TC
+        run: test -f atlas-torax/tc-real/dados/torax.nii.gz
+      - name: Gerar segmentações anatômicas
+        run: |
+          mkdir -p tmp/seg-total
+          TotalSegmentator \
+            -i atlas-torax/tc-real/dados/torax.nii.gz \
+            -o tmp/seg-total \
+            --fast \
+            --roi_subset \
+            lung_upper_lobe_right lung_middle_lobe_right lung_lower_lobe_right \
+            lung_upper_lobe_left lung_lower_lobe_left \
+            trachea esophagus heart aorta pulmonary_vein superior_vena_cava
+      - name: Montar máscara e rótulos
+        run: python scripts/gerar_segmentacao_torax.py
+      - name: Publicar resultados
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add atlas-torax/tc-real/dados/mascara_torax.nii.gz
+          git add atlas-torax/tc-real/dados/rotulos_torax.json
+          git add atlas-torax/tc-real/dados/segmentacao_info.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Adicionar segmentação anatômica torácica'
+            git push
+          fi
