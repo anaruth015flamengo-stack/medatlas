@@ -1,0 +1,13 @@
+{
+  "fonte": "ChestPathCT5-S100 / Zenodo 18256797",
+  "licenca": "CC0 1.0",
+  "categoria": "Pneumothorax",
+  "arquivo_original": "Med3DVlM_Pneumothorax/Med3DVLM_Pneumothorax_01/nifti/Med3DVLM_Pneumothorax_01.nii.gz",
+  "stride": [
+    2,
+    2,
+    2
+  ],
+  "arquivo_publicado": "atlas-torax/dados/pneumotorax.nii.gz",
+  "observacao": "Exame real do grupo pneumotórax; sem contornos segmentados."
+}
