@@ -18,8 +18,31 @@
 <div class="card pad"><h3>Sobre a identificação</h3><div class="note">Esta versão <strong>não executa IA de segmentação</strong> no iPhone. Ela identifica os órgãos a partir de uma segmentação pronta e alinhada à TC. Marcadores ou máscaras de outro paciente não devem ser usados.</div><p class="small">A base <a class="link" href="https://zenodo.org/records/7262581" target="_blank" rel="noopener">AMOS22</a> disponibiliza volumes e máscaras correspondentes de 15 órgãos, conforme sua licença. <a class="link" href="https://niivue.com/" target="_blank" rel="noopener">NiiVue</a> fornece o visualizador.</p></div>
 </aside></div>
 <p class="small muted">Uso educacional. Segmentações podem conter erros; não utilizar para diagnóstico. Exemplo integrado s0011: TC e anotações do TotalSegmentator small dataset, disponibilizados por NVIDIA Isaac for Healthcare (CC BY 4.0). Nenhuma estrutura sem máscara receberá identificação. O navegador processa os arquivos locais sem enviá-los ao MedAtlas.</p></main>
+<script>
+window.addEventListener('error',function(e){const el=document.getElementById('loading');if(el){el.classList.add('hidden');const a=document.getElementById('autoStatus');if(a)a.textContent='Erro de inicialização: '+(e.message||'Falha no JavaScript');}},false);
+window.addEventListener('unhandledrejection',function(e){console.error('Erro não tratado:',e.reason);},false);
+</script>
 <script type="module">
-import { Niivue } from 'https://unpkg.com/@niivue/niivue@0.57.0/dist/index.js';
+// Carregamento protegido: um CDN indisponível não deixa a página presa em 'loading'.
+const NIIVUE_SOURCES = [
+ 'https://cdn.jsdelivr.net/npm/@niivue/niivue@0.57.0/dist/index.js',
+ 'https://unpkg.com/@niivue/niivue@0.57.0/dist/index.js'
+];
+async function getNiivue() {
+ let last;
+ for (const url of NIIVUE_SOURCES) {
+  try {
+   const module = await Promise.race([
+    import(url),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Tempo esgotado ao conectar ao visualizador.')), 12000))
+   ]);
+   if (module.Niivue) return module.Niivue;
+   throw new Error('Módulo NiiVue sem exportação Niivue.');
+  } catch (err) { last=err; console.warn('Fonte NiiVue indisponível:',url,err); }
+ }
+ throw new Error('Não foi possível baixar o visualizador de imagens. Verifique conexão e bloqueios de conteúdo. ' + (last?.message||''));
+}
+
 const $=id=>document.getElementById(id);
 const AMOS={1:['Baço','Órgão linfático no hipocôndrio esquerdo.'],2:['Rim direito','Órgão retroperitoneal à direita.'],3:['Rim esquerdo','Órgão retroperitoneal à esquerda.'],4:['Vesícula biliar','Reservatório biliar na face inferior do fígado.'],5:['Esôfago','Estrutura tubular que conduz alimento ao estômago.'],6:['Fígado','Maior glândula do corpo, no quadrante superior direito.'],7:['Estômago','Órgão muscular localizado predominantemente no abdome superior esquerdo.'],8:['Aorta','Principal artéria sistêmica, anterior à coluna.'],9:['Veia cava inferior','Principal veia de retorno do abdome e membros inferiores.'],10:['Pâncreas','Glândula retroperitoneal, posterior ao estômago.'],11:['Suprarrenal direita','Glândula endócrina sobre o polo superior do rim direito.'],12:['Suprarrenal esquerda','Glândula endócrina sobre o polo superior do rim esquerdo.'],13:['Duodeno','Porção inicial do intestino delgado.'],14:['Bexiga urinária','Órgão oco de armazenamento da urina.'],15:['Próstata / útero','Categoria combinada na referência AMOS22; consulte anatomia individual.']};
 let nv, hasMask=false, maskVisible=true, mode='explorar', map=AMOS, quizId=0, lastId=0, urls=[];
@@ -74,11 +97,34 @@ async function loadAutomatic(){
  }finally{$('auto').disabled=false;}
 }
 async function initialize(){
- try{
+ try {
+  setText('loading','Verificando dados do atlas…');
+  // Primeiro verificar os dados publicados. Não baixar visualizador se nem há exame.
+  const response=await Promise.race([
+   fetch(INFO_URL+'?v=5',{cache:'no-store'}),
+   new Promise((_, reject)=>setTimeout(()=>reject(new Error('O servidor não respondeu em 12 segundos.')),12000))
+  ]);
+  if(!response.ok) throw new Error('Ainda falta gerar os dados do exame (manifesto.json: HTTP '+response.status+'). No GitHub abra Actions → Preparar TC e segmentacoes do MedAtlas → Run workflow.');
+  const info=await response.json();
+  if(!info.labels||!Object.keys(info.labels).length) throw new Error('O manifesto foi encontrado, mas não contém estruturas segmentadas.');
+  setText('loading','Iniciando visualizador de tomografia…');
+  const Niivue=await getNiivue();
   nv=new Niivue({show3Dcrosshair:false,isColorbar:false,backColor:[0,0,0,1],crosshairColor:[.26,.87,.81,.75]});
-  await nv.attachToCanvas($('gl'));nv.onLocationChange=locationChange;
+  await Promise.race([
+   nv.attachToCanvas($('gl')),
+   new Promise((_, reject)=>setTimeout(()=>reject(new Error('O visualizador não conseguiu iniciar.')),15000))
+  ]);
+  nv.onLocationChange=locationChange;
   await loadAutomatic();
- }catch(e){console.error(e);setText('loading','Falha ao iniciar o visualizador. Verifique a internet e recarregue a página.');}
+ }catch(e){
+  console.error(e);
+  const msg=e.message||String(e);
+  $('loading').classList.add('hidden');
+  setText('status','Exame não carregado');
+  setText('autoStatus','Erro: '+msg);
+  showResult('O atlas ainda não está pronto',msg,'AÇÃO NECESSÁRIA');
+  $('auto').disabled=false;
+ }
 }
 $('auto').onclick=loadAutomatic;
 const planes={axial:'sliceTypeAxial',coronal:'sliceTypeCoronal',sagittal:'sliceTypeSagittal',multi:'sliceTypeMultiplanar'};document.querySelectorAll('[data-plane]').forEach(b=>b.onclick=()=>{if(!nv)return;nv.setSliceType(nv[planes[b.dataset.plane]]);document.querySelectorAll('[data-plane]').forEach(x=>x.classList.toggle('active',x===b))});
