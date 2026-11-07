@@ -86,8 +86,8 @@ async function loadAutomatic(){
    const info=await response.json();
    if(!info.labels||!Object.keys(info.labels).length) throw new Error('O manifesto não contém órgãos segmentados.');
    setText('loading','Carregando TC e máscaras do MedAtlas…');
-   await nv.loadVolumes([{url:LOCAL_CT,name:'MedAtlas TC s0011',colormap:'gray'},
-       {url:LOCAL_SEG,name:'MedAtlas órgãos segmentados',colormap:'warm',opacity:.38,cal_min:0,cal_max:Object.keys(info.labels).length}]);
+   await nv.loadVolumes([{url:LOCAL_CT,name:'tc.nii.gz',colormap:'gray'},
+       {url:LOCAL_SEG,name:'rotulos.nii.gz',colormap:'warm',opacity:.38,cal_min:0,cal_max:Object.keys(info.labels).length}]);
    const a=nv.volumes[0],b=nv.volumes[1];
    if(!sameGeometry(a,b))throw new Error('Tomografia e segmentação não estão alinhadas.');
    if(!b.img?.length||!b.img.some?.(x=>x>0))throw new Error('A segmentação não contém órgãos etiquetados.');
